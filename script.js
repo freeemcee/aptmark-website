@@ -1,7 +1,3 @@
-// IMPORTANT: Set your real business email before publishing the enquiry form.
-// The form prepares an email in the visitor's email application; it does NOT submit to a server.
-const BUSINESS_EMAIL = '';
-
 const menuButton = document.querySelector('.menu-toggle');
 const nav = document.querySelector('.nav');
 menuButton?.addEventListener('click', () => {
@@ -20,22 +16,26 @@ document.querySelectorAll('[data-interest]').forEach(link => link.addEventListen
 
 const form = document.getElementById('enquiry-form');
 const status = document.getElementById('form-status');
-form?.addEventListener('submit', event => {
+form?.addEventListener('submit', async event => {
   event.preventDefault();
   if (!form.reportValidity()) return;
-  if (!BUSINESS_EMAIL || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(BUSINESS_EMAIL)) {
-    status.textContent = 'Enquiries are not connected yet. Please check back soon. (Site owner: set BUSINESS_EMAIL in script.js before launch.)';
-    return;
+
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  status.textContent = 'Sending your enquiry…';
+
+  try {
+    const response = await fetch(form.action, {
+      method: 'POST',
+      body: new FormData(form),
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!response.ok) throw new Error('Form submission failed');
+    form.reset();
+    status.textContent = 'Thank you! Your enquiry has been sent. We’ll be in touch soon.';
+  } catch (error) {
+    status.textContent = 'Sorry, your enquiry could not be sent. Please email aptmark.business@gmail.com instead.';
+  } finally {
+    button.disabled = false;
   }
-  const data = new FormData(form);
-  const name = String(data.get('name') || '').trim();
-  const business = String(data.get('business') || '').trim();
-  const email = String(data.get('email') || '').trim();
-  const interest = String(data.get('interest') || '').trim();
-  const message = String(data.get('message') || '').trim();
-  const subject = `APTMARK enquiry: ${interest}`;
-  const body = `Name: ${name}\nBusiness: ${business}\nEmail: ${email}\nInterested in: ${interest}\n\nMessage:\n${message}`;
-  const mailto = `mailto:${BUSINESS_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  status.textContent = 'Your email application should open with your enquiry ready. Please press Send there to complete it.';
-  window.location.href = mailto;
 });
